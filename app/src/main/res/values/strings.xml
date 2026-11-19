@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fake GPS</string>
+    <string name="hint_tap">Touchez la carte pour ajouter des points de passage.</string>
+    <string name="points_count">%1$d point(s) – %2$s</string>
+    <string name="speed_label">Vitesse : %1$d km/h</string>
+    <string name="loop">Boucler le trajet</string>
+    <string name="btn_clear">Effacer</string>
+    <string name="btn_undo">Annuler</string>
+    <string name="btn_teleport">Téléporter</string>
+    <string name="btn_move">Se déplacer</string>
+    <string name="btn_stop">Arrêter</string>
+    <string name="status_idle">Inactif</string>
+    <string name="status_fixed">Position fixe simulée</string>
+    <string name="status_moving">Déplacement à %1$d km/h</string>
+    <string name="status_arrived">Arrivé à destination</string>
+    <string name="need_one_point">Ajoutez au moins un point sur la carte.</string>
+    <string name="need_two_points">Ajoutez au moins deux points pour un déplacement.</string>
+    <string name="permission_denied">La permission de localisation est nécessaire.</string>
+    <string name="mock_title">Application de position fictive</string>
+    <string name="mock_message">Pour simuler la position, activez les options pour les développeurs puis choisissez « Fake GPS » dans « Sélectionner une application de position fictive ».</string>
+    <string name="mock_open_settings">Ouvrir les paramètres</string>
+    <string name="cancel">Annuler</string>
+    <string name="notif_channel">Simulation GPS</string>
+    <string name="notif_title">Position simulée active</string>
+    <string name="error_mock">Impossible de simuler la position : %1$s</string>
+    <string name="my_position">Position simulée</string>
+</resources>
