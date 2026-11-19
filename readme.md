@@ -4,7 +4,12 @@ Application Android de simulation de position GPS (« mock location ») avec pri
 
 ## Fonctionnalités
 
-- Carte OpenStreetMap (osmdroid) : touchez la carte pour ajouter des points de passage.
+- Carte (osmdroid) : touchez la carte pour ajouter des points de passage.
+- **Fonds de carte** (bouton calques, sans clé d'API) : Plan IGN (par défaut), Photo aérienne IGN
+  (Géoplateforme `data.geopf.fr`), CARTO Voyager, CARTO sombre, OpenStreetMap, OpenTopoMap.
+- **Itinéraire sur route** : sélecteur Libre / 🚗 / 🚲 / 🚶. En mode routier, chaque point touché ajoute
+  un tronçon calculé par OSRM (serveur public [routing.openstreetmap.de](https://routing.openstreetmap.de)) ;
+  « Annuler » retire le tronçon entier. Le retour de boucle (dernier → premier point) reste en ligne droite.
 - **Traces** : enregistrer le trajet sous un nom, retrouver/charger/supprimer les traces enregistrées,
   importer un fichier GPX (`trkpt`, sinon `rtept`, sinon `wpt`) ou exporter le trajet en GPX.
 - **Téléporter** : fixe la position simulée sur le dernier point ajouté.

@@ -58,4 +58,6 @@ dependencies {
     implementation("org.osmdroid:osmdroid-android:6.1.20")
 
     testImplementation("junit:junit:4.13.2")
+    // Implémentation réelle d'org.json pour les tests JVM (android.jar ne fournit que des stubs).
+    testImplementation("org.json:json:20240303")
 }

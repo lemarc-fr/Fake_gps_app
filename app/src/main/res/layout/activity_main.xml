@@ -10,6 +10,28 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/mapStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="12dp"
+        android:contentDescription="@string/map_style"
+        app:fabSize="mini"
+        app:srcCompat="@drawable/ic_layers" />
+
+    <TextView
+        android:id="@+id/attribution"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_margin="12dp"
+        android:background="#B3FFFFFF"
+        android:paddingStart="4dp"
+        android:paddingEnd="4dp"
+        android:textColor="#DE000000"
+        android:textSize="10sp" />
+
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/panel"
         android:layout_width="match_parent"
@@ -69,6 +91,52 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/loop" />
+
+            <com.google.android.material.button.MaterialButtonToggleGroup
+                android:id="@+id/routingGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:checkedButton="@id/routingStraight"
+                app:selectionRequired="true"
+                app:singleSelection="true">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/routingStraight"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="@string/routing_straight" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/routingCar"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/routing_car"
+                    android:text="🚗" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/routingBike"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/routing_bike"
+                    android:text="🚲" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/routingFoot"
+                    style="?attr/materialButtonOutlinedStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:contentDescription="@string/routing_foot"
+                    android:text="🚶" />
+            </com.google.android.material.button.MaterialButtonToggleGroup>
 
             <LinearLayout
                 android:layout_width="match_parent"

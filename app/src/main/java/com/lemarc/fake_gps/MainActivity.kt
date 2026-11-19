@@ -38,11 +38,11 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.lemarc.fake_gps.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
@@ -59,6 +59,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var prefs: SharedPreferences
 
     private val waypoints = mutableListOf<GeoPoint>()
+    /** Nombre de points ajoutés par chaque action (1 en ligne droite, n pour un tronçon routier) ; somme = waypoints.size. */
+    private val legSizes = mutableListOf<Int>()
+    private var routingProfile = RoutingProfile.STRAIGHT
+    private var routingJob: Job? = null
+    private var mapStyle = MapStyle.DEFAULT
     private val waypointMarkers = mutableListOf<Marker>()
     private lateinit var routeLine: Polyline
     private lateinit var currentMarker: Marker
@@ -115,11 +120,22 @@ class MainActivity : AppCompatActivity() {
             }
             insets
         }
+        for (view in listOf(binding.mapStyle, binding.attribution)) {
+            ViewCompat.setOnApplyWindowInsetsListener(view) { v, insets ->
+                val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                v.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                    topMargin = baseMargin + bars.top
+                    leftMargin = baseMargin + bars.left
+                    rightMargin = baseMargin + bars.right
+                }
+                insets
+            }
+        }
     }
 
     private fun setupMap() {
         val map = binding.map
-        map.setTileSource(TileSourceFactory.MAPNIK)
+        applyMapStyle(MapStyle.fromName(prefs.getString(KEY_MAP_STYLE, null)))
         map.setMultiTouchControls(true)
         map.zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
         map.isTilesScaledToDpi = true
@@ -167,14 +183,21 @@ class MainActivity : AppCompatActivity() {
         }
         binding.speedLayout.setStartIconOnClickListener { showSpeedPresets() }
         binding.traces.setOnClickListener { showTracesMenu(it) }
+        binding.mapStyle.setOnClickListener { showMapStyles() }
         binding.undo.setOnClickListener {
-            if (waypoints.isNotEmpty()) {
-                waypoints.removeAt(waypoints.lastIndex)
+            if (routingJob?.isActive == true) {
+                routingJob?.cancel()
+                refreshRoute()
+            } else if (waypoints.isNotEmpty()) {
+                val count = (legSizes.removeLastOrNull() ?: 1).coerceIn(1, waypoints.size)
+                repeat(count) { waypoints.removeAt(waypoints.lastIndex) }
                 refreshRoute()
             }
         }
         binding.clear.setOnClickListener {
+            routingJob?.cancel()
             waypoints.clear()
+            legSizes.clear()
             refreshRoute()
         }
         binding.teleport.setOnClickListener {
@@ -196,8 +219,76 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun addWaypoint(p: GeoPoint) {
-        waypoints += GeoPoint(p.latitude, p.longitude)
-        refreshRoute()
+        val tapped = GeoPoint(p.latitude, p.longitude)
+        val from = waypoints.lastOrNull()
+        val profile = routingProfile
+        if (profile == RoutingProfile.STRAIGHT || from == null) {
+            waypoints += tapped
+            legSizes += 1
+            refreshRoute()
+            return
+        }
+        if (routingJob?.isActive == true) {
+            toast(getString(R.string.routing_busy))
+            return
+        }
+        binding.info.text = getString(R.string.routing_computing)
+        routingJob = lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching { OsrmClient.route(listOf(from.toLatLon(), tapped.toLatLon()), profile) }
+            }
+            routingJob = null
+            result.onSuccess { route ->
+                // Le tracé OSRM part du point de route le plus proche : on évite de dupliquer le point de départ.
+                val leg = route.points
+                    .dropWhile { RouteEngine.distance(it, from.toLatLon()) < 1.0 }
+                    .map { GeoPoint(it.lat, it.lon) }
+                if (leg.isNotEmpty()) {
+                    waypoints += leg
+                    legSizes += leg.size
+                }
+                refreshRoute()
+            }.onFailure { e ->
+                refreshRoute()
+                toast(getString(R.string.routing_error, e.message ?: e.javaClass.simpleName))
+            }
+        }
+    }
+
+    private fun showMapStyles() {
+        val styles = MapStyle.entries
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.map_style)
+            .setSingleChoiceItems(styles.map { it.label }.toTypedArray(), styles.indexOf(mapStyle)) { dialog, which ->
+                applyMapStyle(styles[which])
+                prefs.edit().putString(KEY_MAP_STYLE, mapStyle.name).apply()
+                dialog.dismiss()
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun applyMapStyle(style: MapStyle) {
+        mapStyle = style
+        binding.map.setTileSource(style.tileSource)
+        binding.attribution.text = style.tileSource.copyrightNotice
+    }
+
+    private fun setupRoutingToggle() {
+        val ids = mapOf(
+            RoutingProfile.STRAIGHT to R.id.routingStraight,
+            RoutingProfile.CAR to R.id.routingCar,
+            RoutingProfile.BIKE to R.id.routingBike,
+            RoutingProfile.FOOT to R.id.routingFoot,
+        )
+        routingProfile = RoutingProfile.fromName(prefs.getString(KEY_PROFILE, null))
+        binding.routingGroup.check(ids.getValue(routingProfile))
+        binding.routingGroup.addOnButtonCheckedListener { _, id, checked ->
+            if (!checked) return@addOnButtonCheckedListener
+            routingProfile = ids.entries.first { it.value == id }.key
+            prefs.edit().putString(KEY_PROFILE, routingProfile.name).apply()
+            updateInfo()
+        }
     }
 
     private fun showSpeedPresets() {
@@ -377,8 +468,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setRoute(points: List<LatLon>) {
+        routingJob?.cancel()
         waypoints.clear()
         points.mapTo(waypoints) { GeoPoint(it.lat, it.lon) }
+        legSizes.clear()
+        repeat(waypoints.size) { legSizes += 1 }
         refreshRoute()
         zoomToRoute()
         toast(getString(R.string.gpx_loaded, points.size))
@@ -414,27 +508,39 @@ class MainActivity : AppCompatActivity() {
         val map = binding.map
         map.overlays.removeAll(waypointMarkers)
         waypointMarkers.clear()
-        waypoints.forEachIndexed { i, p ->
-            if (waypoints.size > MAX_MARKERS && i != 0 && i != waypoints.lastIndex) return@forEachIndexed
+        if (legSizes.sum() != waypoints.size) {
+            legSizes.clear()
+            repeat(waypoints.size) { legSizes += 1 }
+        }
+        // Marqueurs aux extrémités des tronçons (points touchés), pas sur chaque point du tracé routier.
+        var acc = 0
+        val anchors = legSizes.map { acc += it; acc - 1 }
+        val shown = if (anchors.size > MAX_MARKERS) listOf(0, waypoints.lastIndex).distinct() else anchors
+        shown.forEachIndexed { n, i ->
             waypointMarkers += Marker(map).apply {
-                position = p
-                title = "Point ${i + 1}"
+                position = waypoints[i]
+                title = "Point ${n + 1}"
                 setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             }
         }
         map.overlays.addAll(waypointMarkers)
         routeLine.setPoints(waypoints)
 
+        updateInfo()
+        map.invalidate()
+        saveState()
+    }
+
+    private fun updateInfo() {
+        if (routingJob?.isActive == true) return
         val total = waypoints.zipWithNext { a, b ->
             RouteEngine.distance(a.toLatLon(), b.toLatLon())
         }.sum()
-        binding.info.text = if (waypoints.isEmpty()) {
-            getString(R.string.hint_tap)
-        } else {
-            getString(R.string.points_count, waypoints.size, formatDistance(total))
+        binding.info.text = when {
+            waypoints.isNotEmpty() -> getString(R.string.points_count, legSizes.size, formatDistance(total))
+            routingProfile == RoutingProfile.STRAIGHT -> getString(R.string.hint_tap)
+            else -> getString(R.string.hint_tap_routed)
         }
-        map.invalidate()
-        saveState()
     }
 
     private fun startMock(points: List<GeoPoint>, move: Boolean) {
@@ -560,6 +666,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveState() {
         val editor = prefs.edit()
             .putString(KEY_POINTS, waypoints.joinToString(";") { "${it.latitude},${it.longitude}" })
+            .putString(KEY_LEGS, legSizes.joinToString(","))
             .putBoolean(KEY_LOOP, binding.loop.isChecked)
         currentSpeed()?.let { editor.putString(KEY_SPEED_EXPR, it) }
         editor.apply()
@@ -580,6 +687,11 @@ class MainActivity : AppCompatActivity() {
                 if (lat != null && lon != null) GeoPoint(lat, lon) else null
             }
             ?.let { waypoints.addAll(it) }
+        prefs.getString(KEY_LEGS, null)
+            ?.split(",")
+            ?.mapNotNull { it.toIntOrNull()?.takeIf { n -> n > 0 } }
+            ?.let { legSizes.addAll(it) }
+        setupRoutingToggle()
         refreshRoute()
 
         binding.map.controller.setZoom(prefs.getFloat(KEY_ZOOM, 15f).toDouble())
@@ -625,6 +737,9 @@ class MainActivity : AppCompatActivity() {
         private val GPX_MIME_TYPES =
             arrayOf("application/gpx+xml", "application/xml", "text/xml", "application/octet-stream", "*/*")
         private const val KEY_LOOP = "loop"
+        private const val KEY_LEGS = "legs"
+        private const val KEY_PROFILE = "routing_profile"
+        private const val KEY_MAP_STYLE = "map_style"
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"
         private const val KEY_ZOOM = "zoom"

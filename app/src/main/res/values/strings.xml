@@ -50,4 +50,13 @@
     <string name="notif_title">Position simulée active</string>
     <string name="error_mock">Impossible de simuler la position : %1$s</string>
     <string name="my_position">Position simulée</string>
+    <string name="map_style">Fond de carte</string>
+    <string name="routing_straight">Libre</string>
+    <string name="routing_car">Voiture</string>
+    <string name="routing_bike">Vélo</string>
+    <string name="routing_foot">À pied</string>
+    <string name="routing_computing">Calcul de l’itinéraire…</string>
+    <string name="routing_busy">Itinéraire en cours de calcul, patientez.</string>
+    <string name="routing_error">Itinéraire impossible : %1$s</string>
+    <string name="hint_tap_routed">Touchez la carte pour placer le départ, puis les étapes : le trajet suivra les routes.</string>
 </resources>
