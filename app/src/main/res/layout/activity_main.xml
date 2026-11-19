@@ -50,6 +50,8 @@
                 app:endIconDrawable="@drawable/ic_help"
                 app:endIconMode="custom"
                 app:helperText="@string/speed_helper"
+                app:startIconContentDescription="@string/presets_title"
+                app:startIconDrawable="@drawable/ic_signal"
                 app:suffixText="km/h">
 
                 <com.google.android.material.textfield.TextInputEditText

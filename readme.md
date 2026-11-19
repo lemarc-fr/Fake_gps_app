@@ -14,7 +14,11 @@ Application Android de simulation de position GPS (« mock location ») avec pri
   - Opérateurs : `+ - * / % ^ < > <= >=` ; constantes `pi`, `e`.
   - Fonctions : `sin cos tan asin acos atan atan2 sinh cosh tanh sqrt abs exp ln log2 log10 floor ceil round
     sign min max pow mod rand(a; b) if(condition; a; b)`.
+  - Signaux périodiques (période 2π, valeurs entre -1 et 1) : `square`, `tri`, `saw`.
   - Exemples : `30 + 20*sin(t/10)`, `min(5*t; 130)`, `if(t < 60; 5; 15)`, `rand(40; 60)`.
+  - **Signaux préenregistrés** (icône à gauche du champ), avec aperçu sur 5 minutes : marche, vélo, ville,
+    autoroute, sinusoïde, carré, triangle, dent de scie, rampe, démarrage progressif, feux rouges,
+    embouteillage, marche irrégulière, fractionné, aléatoire, accélération selon la distance.
 - **Boucler le trajet** : aller-retour avec deux points, circuit fermé avec trois points ou plus.
 - Cap (bearing) et vitesse renseignés dans les positions émises.
 - Simulation des fournisseurs `gps`, `network` et `fused` (Android 12+).

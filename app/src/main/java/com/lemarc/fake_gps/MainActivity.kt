@@ -12,9 +12,15 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.graphics.Typeface
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
+import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.ScrollView
+import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -26,6 +32,7 @@ import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
@@ -158,6 +165,7 @@ class MainActivity : AppCompatActivity() {
                 .setPositiveButton(android.R.string.ok, null)
                 .show()
         }
+        binding.speedLayout.setStartIconOnClickListener { showSpeedPresets() }
         binding.traces.setOnClickListener { showTracesMenu(it) }
         binding.undo.setOnClickListener {
             if (waypoints.isNotEmpty()) {
@@ -190,6 +198,58 @@ class MainActivity : AppCompatActivity() {
     private fun addWaypoint(p: GeoPoint) {
         waypoints += GeoPoint(p.latitude, p.longitude)
         refreshRoute()
+    }
+
+    private fun showSpeedPresets() {
+        val density = resources.displayMetrics.density
+        fun dp(v: Int) = (v * density).toInt()
+        val lineColor = MaterialColors.getColor(binding.root, androidx.appcompat.R.attr.colorPrimary)
+        val axisColor = MaterialColors.getColor(binding.root, com.google.android.material.R.attr.colorOutline)
+        val outValue = TypedValue()
+        theme.resolveAttribute(android.R.attr.selectableItemBackground, outValue, true)
+
+        var dialog: AlertDialog? = null
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(8), 0, dp(8), dp(8))
+            addView(TextView(this@MainActivity).apply {
+                setText(R.string.presets_subtitle)
+                setPadding(dp(16), 0, dp(16), dp(4))
+            })
+        }
+        for (preset in SpeedPresets.ALL) {
+            val expr = SpeedExpression.parse(preset.expression)
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(16), dp(10), dp(16), dp(10))
+                setBackgroundResource(outValue.resourceId)
+                isClickable = true
+                setOnClickListener {
+                    binding.speedInput.setText(preset.expression)
+                    binding.speedInput.setSelection(preset.expression.length)
+                    dialog?.dismiss()
+                }
+            }
+            row.addView(TextView(this).apply {
+                text = preset.name
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_TitleSmall)
+            })
+            row.addView(TextView(this).apply {
+                text = preset.expression
+                setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+                typeface = Typeface.MONOSPACE
+            })
+            row.addView(
+                SparklineView(this).apply { setValues(SpeedPresets.sample(expr), lineColor, axisColor) },
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(36)).apply { topMargin = dp(4) },
+            )
+            list.addView(row)
+        }
+        dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.presets_title)
+            .setView(ScrollView(this).apply { addView(list) })
+            .setNegativeButton(R.string.cancel, null)
+            .show()
     }
 
     private fun showTracesMenu(anchor: View) {

@@ -4,10 +4,12 @@
     <string name="hint_tap">Touchez la carte pour ajouter des points de passage.</string>
     <string name="points_count">%1$d point(s) – %2$s</string>
     <string name="speed_hint">Vitesse v(t)</string>
-    <string name="speed_helper">Ex. : 50 · 30+20*sin(t/10) · min(5*t; 130) — t en s, d en m</string>
+    <string name="speed_helper">Ex. : 50 · 30+20*sin(t/10) · min(5*t; 130) — t en s, d en m. Icône de gauche : signaux préenregistrés.</string>
     <string name="speed_invalid">Expression de vitesse invalide : %1$s</string>
+    <string name="presets_title">Signaux préenregistrés</string>
+    <string name="presets_subtitle">Aperçu sur 5 minutes — touchez un signal pour l’utiliser.</string>
     <string name="speed_help_title">Vitesse en fonction du temps</string>
-    <string name="speed_help">La vitesse (km/h) peut être un nombre ou une expression recalculée chaque seconde.\n\nVariables : t = temps depuis le départ (s), d = distance parcourue (m).\n\nOpérateurs : + - * / % ^ &lt; &gt; &lt;= &gt;=\nConstantes : pi, e\nFonctions : sin cos tan asin acos atan atan2 sinh cosh tanh sqrt abs exp ln log2 log10 floor ceil round sign min max pow mod rand(a; b) if(condition; a; b)\n\nExemples :\n• 30 + 20*sin(t/10) — vitesse oscillante\n• min(5*t; 130) — accélération jusqu’à 130 km/h\n• if(t &lt; 60; 5; 15) — 5 km/h la première minute, puis 15\n• rand(40; 60) — vitesse aléatoire\n\nUne valeur négative est ramenée à 0 ; il n’y a pas de maximum. Dans les fonctions, les arguments se séparent par « ; » ou « , » (utilisez alors le point pour les décimales).</string>
+    <string name="speed_help">La vitesse (km/h) peut être un nombre ou une expression recalculée chaque seconde.\n\nVariables : t = temps depuis le départ (s), d = distance parcourue (m).\n\nOpérateurs : + - * / % ^ &lt; &gt; &lt;= &gt;=\nConstantes : pi, e\nFonctions : sin cos tan asin acos atan atan2 sinh cosh tanh sqrt abs exp ln log2 log10 floor ceil round sign min max pow mod rand(a; b) if(condition; a; b)\nSignaux (période 2π, entre -1 et 1) : square tri saw\n\nExemples :\n• 30 + 20*sin(t/10) — vitesse oscillante\n• min(5*t; 130) — accélération jusqu’à 130 km/h\n• if(t &lt; 60; 5; 15) — 5 km/h la première minute, puis 15\n• rand(40; 60) — vitesse aléatoire\n\nUne valeur négative est ramenée à 0 ; il n’y a pas de maximum. Dans les fonctions, les arguments se séparent par « ; » ou « , » (utilisez alors le point pour les décimales).</string>
     <string name="loop">Boucler le trajet</string>
     <string name="btn_traces">Traces</string>
     <string name="menu_save_trace">Enregistrer la trace…</string>

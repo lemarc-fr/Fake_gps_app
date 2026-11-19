@@ -29,7 +29,8 @@ import kotlin.math.tanh
  *
  * Syntaxe : nombres (décimale « . », ou « , » hors des appels de fonction), + - * / % ^, parenthèses,
  * constantes pi et e, fonctions sin cos tan asin acos atan atan2 sinh cosh tanh
- * sqrt abs exp ln log log2 log10 floor ceil round sign min max pow mod
+ * sqrt abs exp ln log log2 log10 floor ceil round sign min max pow mod,
+ * signaux square tri saw (période 2π, valeurs dans [-1 ; 1]), if(c, a, b)
  * et rand(a, b) (aléatoire uniforme).
  *
  * Exemples : « 50 », « 30 + 20*sin(t/10) », « min(5*t, 130) », « if(t<60, 5, 15) ».
@@ -270,6 +271,10 @@ class SpeedExpression private constructor(val source: String, private val root: 
             "ln" to f1(::ln), "log" to f1(::ln), "log2" to f1(::log2), "log10" to f1(::log10),
             "floor" to f1(::floor), "ceil" to f1(::ceil), "round" to f1(::round),
             "sign" to f1 { sign(it) },
+            // Signaux périodiques de période 2π, à valeurs dans [-1 ; 1], alignés sur sin.
+            "square" to f1 { if (sin(it) >= 0) 1.0 else -1.0 },
+            "tri" to f1 { 2 / Math.PI * asin(sin(it)) },
+            "saw" to f1 { x -> val u = x / (2 * Math.PI); 2 * (u - floor(u + 0.5)) },
             "atan2" to f2(::atan2), "pow" to f2 { a, b -> a.pow(b) }, "mod" to f2 { a, b -> a.mod(b) },
             "min" to Function(1..Int.MAX_VALUE) { it.min() },
             "max" to Function(1..Int.MAX_VALUE) { it.max() },
