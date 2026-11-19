@@ -32,9 +32,12 @@ class MockLocationService : Service() {
     private val providers = mutableListOf<String>()
 
     private var engine: RouteEngine? = null
-    private var speedKmh = 5
+    private var speedExpr: SpeedExpression = SpeedExpression.parse("5")
+    private var speedKmh = 0.0
     private var lastTick = 0L
+    private var moveStart = 0L
     private var moving = false
+    private var ticksSinceNotif = 0
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -58,7 +61,7 @@ class MockLocationService : Service() {
                 return START_NOT_STICKY
             }
             ACTION_SET_SPEED -> {
-                speedKmh = intent.getIntExtra(EXTRA_SPEED, speedKmh)
+                intent.getStringExtra(EXTRA_SPEED)?.let(SpeedExpression::parseOrNull)?.let { speedExpr = it }
                 publishState()
                 updateNotification()
                 return START_NOT_STICKY
@@ -73,11 +76,12 @@ class MockLocationService : Service() {
                 }
                 val points = lats.indices.map { LatLon(lats[it], lons[it]) }
                 moving = intent.getBooleanExtra(EXTRA_MOVE, false) && points.size >= 2
-                speedKmh = intent.getIntExtra(EXTRA_SPEED, speedKmh)
+                intent.getStringExtra(EXTRA_SPEED)?.let(SpeedExpression::parseOrNull)?.let { speedExpr = it }
                 engine = RouteEngine(points, intent.getBooleanExtra(EXTRA_LOOP, false))
 
                 if (!setupProviders()) return START_NOT_STICKY
                 lastTick = SystemClock.elapsedRealtime()
+                moveStart = lastTick
                 handler.removeCallbacks(ticker)
                 handler.post(ticker)
                 updateNotification()
@@ -137,6 +141,8 @@ class MockLocationService : Service() {
         val dt = (now - lastTick) / 1000.0
         lastTick = now
 
+        val t = (now - moveStart) / 1000.0
+        speedKmh = if (moving) speedExpr.speedKmh(t, eng.travelled) else 0.0
         val pos = if (moving) eng.advance(speedKmh / 3.6 * dt) else eng.current()
         val speedMs = if (moving && !pos.finished) (speedKmh / 3.6).toFloat() else 0f
         if (!pushLocation(pos, speedMs)) return
@@ -146,7 +152,11 @@ class MockLocationService : Service() {
             pos.finished -> MockMode.ARRIVED
             else -> MockMode.MOVING
         }
-        MockState.update(MockStatus(mode, pos.point, speedKmh))
+        MockState.update(MockStatus(mode, pos.point, speedKmh, speedExpr.source))
+        if (!speedExpr.isConstant && ++ticksSinceNotif >= NOTIF_EVERY_TICKS) {
+            ticksSinceNotif = 0
+            updateNotification()
+        }
     }
 
     private fun pushLocation(pos: RoutePosition, speedMs: Float): Boolean {
@@ -182,7 +192,7 @@ class MockLocationService : Service() {
 
     private fun publishState() {
         val current = MockState.status.value
-        MockState.update(current.copy(speedKmh = speedKmh))
+        MockState.update(current.copy(speedKmh = speedKmh, speedExpression = speedExpr.source))
     }
 
     private fun fail(message: String) {
@@ -241,7 +251,7 @@ class MockLocationService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
         )
         val text = if (moving) {
-            getString(R.string.status_moving, speedKmh)
+            getString(R.string.status_moving, formatSpeed(speedKmh))
         } else {
             getString(R.string.status_fixed)
         }
@@ -266,6 +276,14 @@ class MockLocationService : Service() {
         private const val CHANNEL_ID = "mock_location"
         private const val NOTIFICATION_ID = 42
         private const val UPDATE_INTERVAL_MS = 1000L
+        private const val NOTIF_EVERY_TICKS = 5
+
+        fun formatSpeed(kmh: Double): String =
+            if (kmh >= 100 || kmh == Math.floor(kmh)) {
+                String.format(java.util.Locale.FRANCE, "%.0f", kmh)
+            } else {
+                String.format(java.util.Locale.FRANCE, "%.1f", kmh)
+            }
 
         const val ACTION_START = "com.lemarc.fake_gps.START"
         const val ACTION_STOP = "com.lemarc.fake_gps.STOP"
@@ -276,24 +294,24 @@ class MockLocationService : Service() {
         const val EXTRA_LOOP = "loop"
         const val EXTRA_MOVE = "move"
 
-        fun start(context: Context, points: List<LatLon>, move: Boolean, speedKmh: Int, loop: Boolean) {
+        fun start(context: Context, points: List<LatLon>, move: Boolean, speed: String, loop: Boolean) {
             val intent = Intent(context, MockLocationService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_LATS, points.map { it.lat }.toDoubleArray())
                 putExtra(EXTRA_LONS, points.map { it.lon }.toDoubleArray())
                 putExtra(EXTRA_MOVE, move)
-                putExtra(EXTRA_SPEED, speedKmh)
+                putExtra(EXTRA_SPEED, speed)
                 putExtra(EXTRA_LOOP, loop)
             }
             ContextCompat.startForegroundService(context, intent)
         }
 
-        fun setSpeed(context: Context, speedKmh: Int) {
+        fun setSpeed(context: Context, speed: String) {
             if (MockState.status.value.mode == MockMode.IDLE) return
             context.startService(
                 Intent(context, MockLocationService::class.java)
                     .setAction(ACTION_SET_SPEED)
-                    .putExtra(EXTRA_SPEED, speedKmh),
+                    .putExtra(EXTRA_SPEED, speed),
             )
         }
 

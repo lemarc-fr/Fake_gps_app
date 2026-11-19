@@ -12,7 +12,9 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Process
 import android.provider.Settings
+import android.view.View
 import android.view.ViewGroup
+import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -25,6 +27,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.lemarc.fake_gps.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,6 +42,8 @@ import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
@@ -61,6 +67,13 @@ class MainActivity : AppCompatActivity() {
             } else {
                 toast(getString(R.string.permission_denied))
             }
+        }
+
+    private val traceStore by lazy { TraceStore(filesDir) }
+
+    private val gpxExporter =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/gpx+xml")) { uri ->
+            if (uri != null) exportGpx(uri)
         }
 
     private val gpxPicker =
@@ -128,16 +141,24 @@ class MainActivity : AppCompatActivity() {
 
     private fun setupControls() {
         binding.speedInput.doAfterTextChanged {
-            val speed = currentSpeed()
-            binding.speedLayout.error = if (speed == null) getString(R.string.speed_invalid) else null
-            if (speed != null) {
-                MockLocationService.setSpeed(this, speed)
+            val text = it?.toString().orEmpty()
+            try {
+                SpeedExpression.parse(text)
+                binding.speedLayout.error = null
+                MockLocationService.setSpeed(this, text.trim())
                 saveState()
+            } catch (e: SpeedExpression.ParseException) {
+                binding.speedLayout.error = getString(R.string.speed_invalid, e.message)
             }
         }
-        binding.loadGpx.setOnClickListener {
-            gpxPicker.launch(arrayOf("application/gpx+xml", "application/xml", "text/xml", "application/octet-stream", "*/*"))
+        binding.speedLayout.setEndIconOnClickListener {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.speed_help_title)
+                .setMessage(R.string.speed_help)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
         }
+        binding.traces.setOnClickListener { showTracesMenu(it) }
         binding.undo.setOnClickListener {
             if (waypoints.isNotEmpty()) {
                 waypoints.removeAt(waypoints.lastIndex)
@@ -171,6 +192,138 @@ class MainActivity : AppCompatActivity() {
         refreshRoute()
     }
 
+    private fun showTracesMenu(anchor: View) {
+        PopupMenu(this, anchor).apply {
+            menu.add(0, 1, 0, R.string.menu_save_trace)
+            menu.add(0, 2, 1, R.string.menu_my_traces)
+            menu.add(0, 3, 2, R.string.menu_import_gpx)
+            menu.add(0, 4, 3, R.string.menu_export_gpx)
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    1 -> askTraceName()
+                    2 -> showSavedTraces()
+                    3 -> gpxPicker.launch(GPX_MIME_TYPES)
+                    4 -> if (waypoints.isEmpty()) {
+                        toast(getString(R.string.need_one_point))
+                    } else {
+                        gpxExporter.launch(TraceStore.sanitize(defaultTraceName()) + ".gpx")
+                    }
+                }
+                true
+            }
+            show()
+        }
+    }
+
+    private fun defaultTraceName(): String =
+        getString(R.string.trace_default_name, SimpleDateFormat("yyyy-MM-dd HH'h'mm", Locale.FRANCE).format(Date()))
+
+    private fun askTraceName() {
+        if (waypoints.isEmpty()) {
+            toast(getString(R.string.need_one_point))
+            return
+        }
+        val input = TextInputEditText(this).apply {
+            setText(defaultTraceName())
+            selectAll()
+            isSingleLine = true
+        }
+        val container = TextInputLayout(this).apply {
+            hint = getString(R.string.trace_name)
+            val pad = (20 * resources.displayMetrics.density).toInt()
+            setPadding(pad, pad / 2, pad, 0)
+            addView(input)
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.menu_save_trace)
+            .setView(container)
+            .setPositiveButton(R.string.save) { _, _ ->
+                val name = input.text?.toString()?.trim().orEmpty().ifEmpty { defaultTraceName() }
+                if (traceStore.exists(name)) {
+                    MaterialAlertDialogBuilder(this)
+                        .setMessage(getString(R.string.trace_exists, TraceStore.sanitize(name)))
+                        .setPositiveButton(R.string.replace) { _, _ -> saveTrace(name) }
+                        .setNegativeButton(R.string.cancel, null)
+                        .show()
+                } else {
+                    saveTrace(name)
+                }
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun saveTrace(name: String) {
+        val points = waypoints.map { it.toLatLon() }
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { traceStore.save(name, points) } }
+            result.onSuccess { toast(getString(R.string.trace_saved, TraceStore.sanitize(name))) }
+                .onFailure { toast(getString(R.string.trace_error, it.message ?: it.javaClass.simpleName)) }
+        }
+    }
+
+    private fun showSavedTraces() {
+        lifecycleScope.launch {
+            val traces = withContext(Dispatchers.IO) { traceStore.list() }
+            if (traces.isEmpty()) {
+                toast(getString(R.string.no_traces))
+                return@launch
+            }
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.FRANCE)
+            val labels = traces.map { "${it.name}\n${dateFormat.format(Date(it.modified))}" }.toTypedArray()
+            MaterialAlertDialogBuilder(this@MainActivity)
+                .setTitle(R.string.menu_my_traces)
+                .setItems(labels) { _, which -> showTraceActions(traces[which]) }
+                .setNegativeButton(R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun showTraceActions(trace: TraceStore.Trace) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(trace.name)
+            .setPositiveButton(R.string.load) { _, _ -> loadSavedTrace(trace) }
+            .setNegativeButton(R.string.delete) { _, _ ->
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) { traceStore.delete(trace.name) }
+                    toast(getString(R.string.trace_deleted, trace.name))
+                }
+            }
+            .setNeutralButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun loadSavedTrace(trace: TraceStore.Trace) {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { traceStore.load(trace.name) } }
+            result.onSuccess { setRoute(it) }
+                .onFailure { toast(getString(R.string.trace_error, it.message ?: it.javaClass.simpleName)) }
+        }
+    }
+
+    private fun exportGpx(uri: Uri) {
+        val points = waypoints.map { it.toLatLon() }
+        val name = defaultTraceName()
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    contentResolver.openOutputStream(uri, "wt")?.use { GpxWriter.write(name, points, it) }
+                        ?: throw java.io.IOException("fichier inaccessible")
+                }
+            }
+            result.onSuccess { toast(getString(R.string.gpx_exported)) }
+                .onFailure { toast(getString(R.string.trace_error, it.message ?: it.javaClass.simpleName)) }
+        }
+    }
+
+    private fun setRoute(points: List<LatLon>) {
+        waypoints.clear()
+        points.mapTo(waypoints) { GeoPoint(it.lat, it.lon) }
+        refreshRoute()
+        zoomToRoute()
+        toast(getString(R.string.gpx_loaded, points.size))
+    }
+
     private fun loadGpx(uri: Uri) {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) {
@@ -179,13 +332,7 @@ class MainActivity : AppCompatActivity() {
                         ?: throw GpxParser.GpxException("fichier introuvable")
                 }
             }
-            result.onSuccess { points ->
-                waypoints.clear()
-                points.mapTo(waypoints) { GeoPoint(it.lat, it.lon) }
-                refreshRoute()
-                zoomToRoute()
-                toast(getString(R.string.gpx_loaded, points.size))
-            }.onFailure { e ->
+            result.onSuccess { setRoute(it) }.onFailure { e ->
                 toast(getString(R.string.gpx_error, e.message ?: e.javaClass.simpleName))
             }
         }
@@ -233,7 +380,7 @@ class MainActivity : AppCompatActivity() {
     private fun startMock(points: List<GeoPoint>, move: Boolean) {
         val speed = currentSpeed()
         if (speed == null) {
-            toast(getString(R.string.speed_invalid))
+            binding.speedLayout.error?.let { toast(it.toString()) }
             return
         }
         val action = {
@@ -276,7 +423,7 @@ class MainActivity : AppCompatActivity() {
         binding.status.text = when (status.mode) {
             MockMode.IDLE -> getString(R.string.status_idle)
             MockMode.FIXED -> getString(R.string.status_fixed)
-            MockMode.MOVING -> getString(R.string.status_moving, status.speedKmh)
+            MockMode.MOVING -> getString(R.string.status_moving, MockLocationService.formatSpeed(status.speedKmh))
             MockMode.ARRIVED -> getString(R.string.status_arrived)
         }
         binding.stop.isEnabled = status.mode != MockMode.IDLE
@@ -339,9 +486,9 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
 
-    /** Vitesse saisie en km/h (au moins 1, sans maximum), ou null si invalide. */
-    private fun currentSpeed(): Int? =
-        binding.speedInput.text?.toString()?.trim()?.toIntOrNull()?.takeIf { it >= 1 }
+    /** Expression de vitesse saisie (km/h, sans maximum), ou null si invalide. */
+    private fun currentSpeed(): String? =
+        binding.speedInput.text?.toString()?.trim()?.takeIf { SpeedExpression.parseOrNull(it) != null }
 
     private fun formatDistance(meters: Double): String =
         if (meters < 1000) {
@@ -351,21 +498,16 @@ class MainActivity : AppCompatActivity() {
         }
 
     private fun saveState() {
-        prefs.edit()
+        val editor = prefs.edit()
             .putString(KEY_POINTS, waypoints.joinToString(";") { "${it.latitude},${it.longitude}" })
-            .putInt(KEY_SPEED, currentSpeed() ?: DEFAULT_SPEED)
             .putBoolean(KEY_LOOP, binding.loop.isChecked)
-            .apply()
+        currentSpeed()?.let { editor.putString(KEY_SPEED_EXPR, it) }
+        editor.apply()
     }
 
     private fun restoreState() {
-        val speed = try {
-            prefs.getInt(KEY_SPEED, DEFAULT_SPEED)
-        } catch (_: ClassCastException) {
-            // Ancienne version : vitesse enregistrée en Float.
-            prefs.getFloat(KEY_SPEED, DEFAULT_SPEED.toFloat()).toInt()
-        }.coerceAtLeast(1)
-        binding.speedInput.setText(speed.toString())
+        val speed = prefs.getString(KEY_SPEED_EXPR, null) ?: legacySpeed() ?: DEFAULT_SPEED
+        binding.speedInput.setText(speed)
         binding.loop.isChecked = prefs.getBoolean(KEY_LOOP, false)
         binding.loop.setOnCheckedChangeListener { _, _ -> saveState() }
 
@@ -405,6 +547,12 @@ class MainActivity : AppCompatActivity() {
         super.onPause()
     }
 
+    /** Vitesse enregistrée par les versions précédentes (Int ou Float). */
+    private fun legacySpeed(): String? = when (val v = prefs.all[KEY_SPEED]) {
+        is Number -> v.toInt().coerceAtLeast(1).toString()
+        else -> null
+    }
+
     private fun toast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     private fun GeoPoint.toLatLon() = LatLon(latitude, longitude)
@@ -412,7 +560,10 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val KEY_POINTS = "points"
         private const val KEY_SPEED = "speed"
-        private const val DEFAULT_SPEED = 5
+        private const val KEY_SPEED_EXPR = "speed_expr"
+        private const val DEFAULT_SPEED = "5"
+        private val GPX_MIME_TYPES =
+            arrayOf("application/gpx+xml", "application/xml", "text/xml", "application/octet-stream", "*/*")
         private const val KEY_LOOP = "loop"
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"

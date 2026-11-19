@@ -8,7 +8,8 @@ enum class MockMode { IDLE, FIXED, MOVING, ARRIVED }
 data class MockStatus(
     val mode: MockMode = MockMode.IDLE,
     val position: LatLon? = null,
-    val speedKmh: Int = 0,
+    val speedKmh: Double = 0.0,
+    val speedExpression: String = "",
     val error: String? = null,
 )
 

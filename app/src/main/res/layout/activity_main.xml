@@ -46,6 +46,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="@string/speed_hint"
+                app:endIconContentDescription="@string/speed_help_title"
+                app:endIconDrawable="@drawable/ic_help"
+                app:endIconMode="custom"
+                app:helperText="@string/speed_helper"
                 app:suffixText="km/h">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -53,8 +57,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:imeOptions="actionDone"
-                    android:inputType="number"
-                    android:maxLength="9"
+                    android:fontFamily="monospace"
+                    android:inputType="text|textNoSuggestions"
                     android:text="5" />
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -70,13 +74,13 @@
                 android:orientation="horizontal">
 
                 <com.google.android.material.button.MaterialButton
-                    android:id="@+id/loadGpx"
+                    android:id="@+id/traces"
                     style="?attr/materialButtonOutlinedStyle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="4dp"
                     android:layout_weight="1"
-                    android:text="@string/btn_load_gpx" />
+                    android:text="@string/btn_traces" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/undo"
