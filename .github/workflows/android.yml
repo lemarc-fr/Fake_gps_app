@@ -91,19 +91,3 @@ jobs:
         with:
           files: |
             app/build/outputs/apk/release/*.apk
-
-      - name: Ajouter l'APK release au dépôt (main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          mkdir -p apk
-          cp app/build/outputs/apk/release/app-release.apk apk/fake-gps-release.apk
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apk/fake-gps-release.apk
-          if git diff --cached --quiet; then
-            echo "APK inchangé"
-            exit 0
-          fi
-          git commit -m "Met à jour l'APK release (${GITHUB_SHA::7}) [skip ci]"
-          git pull --rebase origin main
-          git push origin HEAD:main
