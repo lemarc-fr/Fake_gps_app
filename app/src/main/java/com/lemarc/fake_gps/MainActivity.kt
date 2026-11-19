@@ -20,6 +20,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
+import androidx.core.widget.doAfterTextChanged
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -126,9 +127,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupControls() {
-        binding.speed.addOnChangeListener { _, value, fromUser ->
-            updateSpeedLabel(value.toInt())
-            if (fromUser) MockLocationService.setSpeed(this, value.toInt())
+        binding.speedInput.doAfterTextChanged {
+            val speed = currentSpeed()
+            binding.speedLayout.error = if (speed == null) getString(R.string.speed_invalid) else null
+            if (speed != null) {
+                MockLocationService.setSpeed(this, speed)
+                saveState()
+            }
         }
         binding.loadGpx.setOnClickListener {
             gpxPicker.launch(arrayOf("application/gpx+xml", "application/xml", "text/xml", "application/octet-stream", "*/*"))
@@ -226,13 +231,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startMock(points: List<GeoPoint>, move: Boolean) {
+        val speed = currentSpeed()
+        if (speed == null) {
+            toast(getString(R.string.speed_invalid))
+            return
+        }
         val action = {
             if (isMockLocationApp()) {
                 MockLocationService.start(
                     this,
                     points.map { it.toLatLon() },
                     move,
-                    binding.speed.value.toInt(),
+                    speed,
                     binding.loop.isChecked,
                 )
             } else {
@@ -329,9 +339,9 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
 
-    private fun updateSpeedLabel(kmh: Int) {
-        binding.speedLabel.text = getString(R.string.speed_label, kmh)
-    }
+    /** Vitesse saisie en km/h (au moins 1, sans maximum), ou null si invalide. */
+    private fun currentSpeed(): Int? =
+        binding.speedInput.text?.toString()?.trim()?.toIntOrNull()?.takeIf { it >= 1 }
 
     private fun formatDistance(meters: Double): String =
         if (meters < 1000) {
@@ -343,15 +353,19 @@ class MainActivity : AppCompatActivity() {
     private fun saveState() {
         prefs.edit()
             .putString(KEY_POINTS, waypoints.joinToString(";") { "${it.latitude},${it.longitude}" })
-            .putFloat(KEY_SPEED, binding.speed.value)
+            .putInt(KEY_SPEED, currentSpeed() ?: DEFAULT_SPEED)
             .putBoolean(KEY_LOOP, binding.loop.isChecked)
             .apply()
     }
 
     private fun restoreState() {
-        val speed = prefs.getFloat(KEY_SPEED, 5f).coerceIn(binding.speed.valueFrom, binding.speed.valueTo)
-        binding.speed.value = speed
-        updateSpeedLabel(speed.toInt())
+        val speed = try {
+            prefs.getInt(KEY_SPEED, DEFAULT_SPEED)
+        } catch (_: ClassCastException) {
+            // Ancienne version : vitesse enregistrée en Float.
+            prefs.getFloat(KEY_SPEED, DEFAULT_SPEED.toFloat()).toInt()
+        }.coerceAtLeast(1)
+        binding.speedInput.setText(speed.toString())
         binding.loop.isChecked = prefs.getBoolean(KEY_LOOP, false)
         binding.loop.setOnCheckedChangeListener { _, _ -> saveState() }
 
@@ -398,6 +412,7 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val KEY_POINTS = "points"
         private const val KEY_SPEED = "speed"
+        private const val DEFAULT_SPEED = 5
         private const val KEY_LOOP = "loop"
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"
