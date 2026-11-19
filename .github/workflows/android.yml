@@ -32,8 +32,46 @@ jobs:
       - name: Tests unitaires
         run: ./gradlew testDebugUnitTest --stacktrace
 
+            - name: Préparer le keystore de signature
+        env:
+          KEYSTORE: ${{ secrets.KEYSTORE }}
+        run: |
+          if [ -z "$KEYSTORE" ]; then
+            echo "::warning::Secret KEYSTORE indisponible (fork ?) : l'APK release sera signé avec la clé de debug."
+            exit 0
+          fi
+          if ! printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload-keystore.jks" 2>/dev/null; then
+            echo "::error::Le secret KEYSTORE doit contenir le keystore encodé en base64 (base64 -w0 upload-keystore.jks)."
+            exit 1
+          fi
+          echo "SIGNING_STORE_FILE=$RUNNER_TEMP/upload-keystore.jks" >> "$GITHUB_ENV"
+
       - name: Compiler les APK
+        env:
+          SIGNING_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.KEYSTORE_KEY_NAME }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.KEYSTORE_KEY_PASSWORD }}
         run: ./gradlew assembleDebug assembleRelease --stacktrace
+
+      - name: Vérifier la signature de l'APK release
+        run: |
+          APKSIGNER="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner"
+          "$APKSIGNER" verify --print-certs app/build/outputs/apk/release/app-release.apk | tee signature.txt
+          if [ -n "${SIGNING_STORE_FILE:-}" ]; then
+            if grep -qi "certificate SHA-256 digest: $EXPECTED_CERT_SHA256" signature.txt; then
+              echo "APK signé avec la clé upload attendue."
+            else
+              echo "::error::L'APK n'est pas signé avec la clé upload attendue ($EXPECTED_CERT_SHA256)."
+              exit 1
+            fi
+          fi
+        env:
+          # Empreinte (publique) du certificat de la clé « upload ».
+          EXPECTED_CERT_SHA256: 9fbc503d367f2c753d739971c04f7f216937702c8605769afcb0e888d667f4b7
+
+      - name: Supprimer le keystore
+        if: always()
+        run: rm -f "$RUNNER_TEMP/upload-keystore.jks"
 
       - name: Publier l'APK debug
         uses: actions/upload-artifact@v4
