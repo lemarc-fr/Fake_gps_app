@@ -1,4 +1,4 @@
-package io.github.marcbrunet92.fakegps
+package com.lemarc.fake_gps
 
 import android.Manifest
 import android.app.AppOpsManager
@@ -23,7 +23,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import io.github.marcbrunet92.fakegps.databinding.ActivityMainBinding
+import com.lemarc.fake_gps.databinding.ActivityMainBinding
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver

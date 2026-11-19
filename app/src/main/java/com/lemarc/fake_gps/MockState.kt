@@ -1,4 +1,4 @@
-package io.github.marcbrunet92.fakegps
+package com.lemarc.fake_gps
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

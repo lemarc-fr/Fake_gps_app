@@ -1,4 +1,4 @@
-package io.github.marcbrunet92.fakegps
+package com.lemarc.fake_gps
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

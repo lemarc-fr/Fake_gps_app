@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "io.github.marcbrunet92.fakegps"
+    namespace = "com.lemarc.fake_gps"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "io.github.marcbrunet92.fakegps"
+        applicationId = "com.lemarc.fake_gps"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

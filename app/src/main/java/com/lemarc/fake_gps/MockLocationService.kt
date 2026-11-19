@@ -1,4 +1,4 @@
-package io.github.marcbrunet92.fakegps
+package com.lemarc.fake_gps
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -267,9 +267,9 @@ class MockLocationService : Service() {
         private const val NOTIFICATION_ID = 42
         private const val UPDATE_INTERVAL_MS = 1000L
 
-        const val ACTION_START = "io.github.marcbrunet92.fakegps.START"
-        const val ACTION_STOP = "io.github.marcbrunet92.fakegps.STOP"
-        const val ACTION_SET_SPEED = "io.github.marcbrunet92.fakegps.SET_SPEED"
+        const val ACTION_START = "com.lemarc.fake_gps.START"
+        const val ACTION_STOP = "com.lemarc.fake_gps.STOP"
+        const val ACTION_SET_SPEED = "com.lemarc.fake_gps.SET_SPEED"
         const val EXTRA_LATS = "lats"
         const val EXTRA_LONS = "lons"
         const val EXTRA_SPEED = "speed"

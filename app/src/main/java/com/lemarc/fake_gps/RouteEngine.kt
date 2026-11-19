@@ -1,4 +1,4 @@
-package io.github.marcbrunet92.fakegps
+package com.lemarc.fake_gps
 
 import kotlin.math.atan2
 import kotlin.math.cos
