@@ -5,6 +5,7 @@ Application Android de simulation de position GPS (« mock location ») avec pri
 ## Fonctionnalités
 
 - Carte OpenStreetMap (osmdroid) : touchez la carte pour ajouter des points de passage.
+- **GPX** : importe une trace GPX (points `trkpt`, sinon `rtept`, sinon `wpt`) comme trajet.
 - **Téléporter** : fixe la position simulée sur le dernier point ajouté.
 - **Se déplacer** : suit le trajet point par point à la vitesse choisie (1 à 200 km/h), modifiable en cours de route.
 - **Boucler le trajet** : aller-retour avec deux points, circuit fermé avec trois points ou plus.

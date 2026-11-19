@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Process
@@ -24,10 +25,13 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.lemarc.fake_gps.databinding.ActivityMainBinding
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.overlay.MapEventsOverlay
@@ -56,6 +60,11 @@ class MainActivity : AppCompatActivity() {
             } else {
                 toast(getString(R.string.permission_denied))
             }
+        }
+
+    private val gpxPicker =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) loadGpx(uri)
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -121,6 +130,9 @@ class MainActivity : AppCompatActivity() {
             updateSpeedLabel(value.toInt())
             if (fromUser) MockLocationService.setSpeed(this, value.toInt())
         }
+        binding.loadGpx.setOnClickListener {
+            gpxPicker.launch(arrayOf("application/gpx+xml", "application/xml", "text/xml", "application/octet-stream", "*/*"))
+        }
         binding.undo.setOnClickListener {
             if (waypoints.isNotEmpty()) {
                 waypoints.removeAt(waypoints.lastIndex)
@@ -154,11 +166,44 @@ class MainActivity : AppCompatActivity() {
         refreshRoute()
     }
 
+    private fun loadGpx(uri: Uri) {
+        lifecycleScope.launch {
+            val result = withContext(Dispatchers.IO) {
+                runCatching {
+                    contentResolver.openInputStream(uri)?.use { GpxParser.parse(it) }
+                        ?: throw GpxParser.GpxException("fichier introuvable")
+                }
+            }
+            result.onSuccess { points ->
+                waypoints.clear()
+                points.mapTo(waypoints) { GeoPoint(it.lat, it.lon) }
+                refreshRoute()
+                zoomToRoute()
+                toast(getString(R.string.gpx_loaded, points.size))
+            }.onFailure { e ->
+                toast(getString(R.string.gpx_error, e.message ?: e.javaClass.simpleName))
+            }
+        }
+    }
+
+    private fun zoomToRoute() {
+        val map = binding.map
+        when (waypoints.size) {
+            0 -> Unit
+            1 -> map.controller.animateTo(waypoints[0])
+            else -> map.post {
+                val box = BoundingBox.fromGeoPointsSafe(waypoints)
+                map.zoomToBoundingBox(box, true, (48 * resources.displayMetrics.density).toInt())
+            }
+        }
+    }
+
     private fun refreshRoute() {
         val map = binding.map
         map.overlays.removeAll(waypointMarkers)
         waypointMarkers.clear()
         waypoints.forEachIndexed { i, p ->
+            if (waypoints.size > MAX_MARKERS && i != 0 && i != waypoints.lastIndex) return@forEachIndexed
             waypointMarkers += Marker(map).apply {
                 position = p
                 title = "Point ${i + 1}"
@@ -357,5 +402,6 @@ class MainActivity : AppCompatActivity() {
         private const val KEY_LAT = "lat"
         private const val KEY_LON = "lon"
         private const val KEY_ZOOM = "zoom"
+        private const val MAX_MARKERS = 50
     }
 }
