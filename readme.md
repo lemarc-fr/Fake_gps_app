@@ -27,7 +27,8 @@ Application Android de simulation de position GPS (« mock location ») avec pri
 
 ## Utilisation
 
-1. Installez l'APK (artefact de la GitHub Action ou release).
+1. Installez l'APK : [`apk/fake-gps-release.apk`](apk/fake-gps-release.apk) (mis à jour automatiquement à chaque push sur `main`),
+   ou l'artefact de la GitHub Action, ou la release GitHub.
 2. Activez les **options pour les développeurs** (7 appuis sur « Numéro de build »).
 3. Dans les options pour les développeurs, choisissez **Fake GPS** dans
    « Sélectionner une application de position fictive ».
@@ -45,4 +46,5 @@ Prérequis : JDK 17 et SDK Android (compileSdk 35). minSdk 24 (Android 7.0).
 
 Le workflow `.github/workflows/android.yml` exécute les tests unitaires et compile les APK debug et release
 à chaque push et pull request ; les APK sont disponibles en artefacts. Pousser un tag `v*`
-(par exemple `v1.0`) crée une release GitHub contenant l'APK.
+(par exemple `v1.0`) crée une release GitHub contenant l'APK. Sur `main`, l'APK release est aussi
+committé dans `apk/fake-gps-release.apk` par le workflow.
