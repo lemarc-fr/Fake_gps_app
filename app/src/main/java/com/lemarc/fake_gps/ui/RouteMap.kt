@@ -7,6 +7,7 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.UiComposable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -20,6 +21,8 @@ import com.lemarc.fake_gps.model.EditableRoute
 import com.lemarc.fake_gps.model.LatLon
 import com.lemarc.fake_gps.ui.theme.CurrentPosition
 import com.lemarc.fake_gps.ui.theme.RouteLine
+import com.lemarc.fake_gps.ui.theme.SearchedPlace
+import org.maplibre.compose.camera.CameraAnimation
 import org.maplibre.compose.camera.CameraFit
 import org.maplibre.compose.camera.CameraPosition
 import org.maplibre.compose.camera.CameraUpdate
@@ -47,6 +50,17 @@ import org.maplibre.spatialk.geojson.Position
 class RouteMapHandle {
     internal var mapState: MapState? = null
 
+    /** Centre actuel de la carte, ou null si elle n'est pas affichée. */
+    val center: LatLon?
+        get() = mapState?.cameraPosition?.center?.toLatLon()
+
+    /** Amène la carte sur [point], au moins au niveau [minZoom] (sans dézoomer). */
+    suspend fun flyTo(point: LatLon, minZoom: Double) {
+        val state = mapState ?: return
+        val zoom = maxOf(state.cameraPosition.zoom, minZoom)
+        state.animateCamera(CameraUpdate(center = point.toPosition(), zoom = zoom), CameraAnimation.Fly.Standard)
+    }
+
     /** Centre la carte sur [points], ou l'ajuste pour les montrer tous. */
     suspend fun zoomTo(points: List<LatLon>) {
         val state = mapState ?: return
@@ -69,14 +83,17 @@ class RouteMapHandle {
 /**
  * Carte MapLibre : fond [mapStyle] (vectoriel ou raster), trajet, points touchés et position simulée.
  *
+ * @param searchedPlace lieu trouvé par la recherche d'adresse, repéré sur la carte (ou null).
  * @param initialCamera position de départ, lue une seule fois à la création de la carte.
  * @param onPause appelé à chaque mise en pause avec la caméra courante, pour la mémoriser.
  */
 @Composable
+@UiComposable // Contient des couches MapLibre : sans cette précision, l'inférence peut hésiter.
 fun RouteMap(
     route: EditableRoute,
     mapStyle: MapStyle,
     currentPosition: LatLon?,
+    searchedPlace: LatLon?,
     initialCamera: AppPreferences.Camera,
     handle: RouteMapHandle,
     onTap: (LatLon) -> Unit,
@@ -99,6 +116,7 @@ fun RouteMap(
         },
     ) {
         if (source is MapSource.Raster) RasterBaseLayer(source)
+        SearchedPlaceLayer(searchedPlace)
         RouteLayers(route)
         CurrentPositionLayer(currentPosition)
     }
@@ -176,6 +194,21 @@ private fun RouteLayers(route: EditableRoute) {
         color = const(Color.White),
         radius = const(6.dp),
         strokeColor = const(RouteLine),
+        strokeWidth = const(3.dp),
+    )
+}
+
+/** Repère rouge sous le trajet : l'utilisateur touche la carte dessus pour y ajouter un point. */
+@Composable
+@MaplibreComposable
+private fun SearchedPlaceLayer(place: LatLon?) {
+    val source = rememberGeoJsonSource(GeoJsonData.JsonString(RouteGeoJson.points(listOfNotNull(place))))
+    CircleLayer(
+        id = "searched-place",
+        source = source,
+        color = const(SearchedPlace),
+        radius = const(8.dp),
+        strokeColor = const(Color.White),
         strokeWidth = const(3.dp),
     )
 }

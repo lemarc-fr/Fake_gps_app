@@ -7,6 +7,8 @@ import androidx.lifecycle.viewModelScope
 import com.lemarc.fake_gps.R
 import com.lemarc.fake_gps.data.AppPreferences
 import com.lemarc.fake_gps.data.TraceStore
+import com.lemarc.fake_gps.data.geocoding.GeocodingClient
+import com.lemarc.fake_gps.data.geocoding.Place
 import com.lemarc.fake_gps.data.gpx.GpxParser
 import com.lemarc.fake_gps.data.gpx.GpxWriter
 import com.lemarc.fake_gps.data.routing.OsrmClient
@@ -19,12 +21,16 @@ import com.lemarc.fake_gps.model.Geo
 import com.lemarc.fake_gps.model.LatLon
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -50,6 +56,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val speedError: String? = null,
     )
 
+    /** Recherche d'adresse : suggestions pour le dernier texte saisi. */
+    data class SearchState(
+        val results: List<Place> = emptyList(),
+        val isSearching: Boolean = false,
+        /** Échec de la dernière recherche (réseau, serveurs indisponibles), ou null. */
+        val error: Throwable? = null,
+        /** La dernière recherche est terminée sans résultat. */
+        val noResult: Boolean = false,
+    )
+
+    private data class SearchRequest(val query: String, val near: LatLon?)
+
     private val prefs = AppPreferences(application)
     private val traceStore = TraceStore(application.filesDir)
     private val contentResolver get() = getApplication<Application>().contentResolver
@@ -73,6 +91,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     private var routingJob: Job? = null
+
+    private val searchRequests = MutableStateFlow(SearchRequest("", null))
+    private val _search = MutableStateFlow(SearchState())
+    val search: StateFlow<SearchState> = _search.asStateFlow()
+
+    init {
+        viewModelScope.launch { runSearches() }
+    }
 
     // --- Édition du trajet ---
 
@@ -130,6 +156,39 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         routingJob?.cancel()
         setRoute(EditableRoute.of(points))
         send(MainEvent.RouteLoaded(points.size))
+    }
+
+    // --- Recherche d'adresse ---
+
+    /** Nouveau texte saisi ; [near] (centre de la carte) fait remonter les résultats proches. */
+    fun setSearchQuery(query: String, near: LatLon?) {
+        searchRequests.value = SearchRequest(query.trim(), near)
+    }
+
+    /**
+     * Lance une recherche quand la saisie se stabilise ; une nouvelle saisie annule la recherche
+     * en cours (collectLatest), pour ne jamais afficher les résultats d'un texte périmé.
+     */
+    @OptIn(FlowPreview::class)
+    private suspend fun runSearches() {
+        searchRequests
+            .debounce(SEARCH_DEBOUNCE_MS)
+            .distinctUntilChangedBy { it.query }
+            .collectLatest { request ->
+                if (request.query.length < SEARCH_MIN_LENGTH) {
+                    _search.value = SearchState()
+                    return@collectLatest
+                }
+                _search.update { it.copy(isSearching = true, error = null, noResult = false) }
+                _search.value = try {
+                    val places = GeocodingClient.search(request.query, request.near)
+                    SearchState(results = places, noResult = places.isEmpty())
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    SearchState(error = e)
+                }
+            }
     }
 
     // --- Réglages ---
@@ -262,5 +321,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private companion object {
         /** En dessous de cette distance, deux points sont considérés comme identiques. */
         const val SAME_POINT_THRESHOLD_M = 1.0
+
+        /** Attente après la dernière frappe avant d'interroger les géocodeurs. */
+        const val SEARCH_DEBOUNCE_MS = 350L
+        const val SEARCH_MIN_LENGTH = 3
     }
 }

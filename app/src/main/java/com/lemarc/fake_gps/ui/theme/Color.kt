@@ -16,3 +16,6 @@ val AttributionText = Color(0xDE000000)
 
 /** Position simulée sur la carte. */
 val CurrentPosition = Green800
+
+/** Lieu trouvé par la recherche d'adresse. */
+val SearchedPlace = Color(0xFFC62828)
