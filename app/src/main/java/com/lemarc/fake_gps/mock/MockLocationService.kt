@@ -8,9 +8,9 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
-import android.location.Criteria
 import android.location.Location
 import android.location.LocationManager
+import android.location.provider.ProviderProperties
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -104,7 +104,6 @@ class MockLocationService : Service() {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), type)
     }
 
-    @Suppress("DEPRECATION", "WrongConstant")
     private fun setupProviders(): Boolean {
         if (providers.isNotEmpty()) return true
         val candidates = buildList {
@@ -119,13 +118,7 @@ class MockLocationService : Service() {
                 } catch (_: IllegalArgumentException) {
                     // Pas encore enregistré.
                 }
-                locationManager.addTestProvider(
-                    name,
-                    name == LocationManager.NETWORK_PROVIDER,
-                    name == LocationManager.GPS_PROVIDER,
-                    false, false, true, true, true,
-                    Criteria.POWER_LOW, Criteria.ACCURACY_FINE,
-                )
+                addTestProvider(name)
                 locationManager.setTestProviderEnabled(name, true)
                 providers += name
             } catch (e: SecurityException) {
@@ -140,6 +133,32 @@ class MockLocationService : Service() {
             return false
         }
         return true
+    }
+
+    /** Déclare [name] comme fournisseur de test : précis, peu gourmand, avec altitude, vitesse et cap. */
+    private fun addTestProvider(name: String) {
+        val requiresNetwork = name == LocationManager.NETWORK_PROVIDER
+        val requiresSatellite = name == LocationManager.GPS_PROVIDER
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val properties = ProviderProperties.Builder()
+                .setHasNetworkRequirement(requiresNetwork)
+                .setHasSatelliteRequirement(requiresSatellite)
+                .setHasAltitudeSupport(true)
+                .setHasSpeedSupport(true)
+                .setHasBearingSupport(true)
+                .setPowerUsage(ProviderProperties.POWER_USAGE_LOW)
+                .setAccuracy(ProviderProperties.ACCURACY_FINE)
+                .build()
+            locationManager.addTestProvider(name, properties)
+        } else {
+            // Avant Android 12, seule la surcharge à base de constantes Criteria existe.
+            @Suppress("DEPRECATION", "WrongConstant")
+            locationManager.addTestProvider(
+                name, requiresNetwork, requiresSatellite,
+                false, false, true, true, true,
+                android.location.Criteria.POWER_LOW, android.location.Criteria.ACCURACY_FINE,
+            )
+        }
     }
 
     private fun tick() {
