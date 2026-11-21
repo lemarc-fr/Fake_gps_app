@@ -46,6 +46,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val loop: Boolean,
         /** Un itinéraire OSRM est en cours de calcul. */
         val isRouting: Boolean = false,
+        /** Erreur de syntaxe de l'expression de vitesse saisie, ou null si elle est valide. */
+        val speedError: String? = null,
     )
 
     private val prefs = AppPreferences(application)
@@ -63,9 +65,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     /** Dernière expression de vitesse valide (celle envoyée au service). */
     var speedExpression: String = prefs.speedExpression
         private set
-
-    /** Erreur de syntaxe de la saisie en cours, ou null si elle est valide. */
-    private var speedError: String? = null
 
     /** Caméra de la carte ; au lancement, centrée sur le dernier point du trajet s'il y en a un. */
     var camera: AppPreferences.Camera = prefs.camera.let { saved ->
@@ -156,7 +155,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun setSpeedExpression(text: String): String? {
         val expression = text.trim()
-        speedError = try {
+        val error = try {
             SpeedExpression.parse(expression)
             speedExpression = expression
             prefs.speedExpression = expression
@@ -164,7 +163,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: SpeedExpression.ParseException) {
             e.message.orEmpty()
         }
-        return speedError
+        _state.update { it.copy(speedError = error) }
+        return error
     }
 
     fun saveCamera(camera: AppPreferences.Camera) {
@@ -195,7 +195,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private fun mockRequest(points: List<LatLon>, move: Boolean): MockRequest? {
-        speedError?.let {
+        _state.value.speedError?.let {
             send(MainEvent.Info(R.string.speed_invalid, listOf(it)))
             return null
         }

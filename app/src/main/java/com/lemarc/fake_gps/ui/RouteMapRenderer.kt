@@ -1,10 +1,12 @@
 package com.lemarc.fake_gps.ui
 
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.content.ContextCompat
 import com.lemarc.fake_gps.R
 import com.lemarc.fake_gps.map.toGeoPoint
 import com.lemarc.fake_gps.model.EditableRoute
 import com.lemarc.fake_gps.model.LatLon
+import com.lemarc.fake_gps.ui.theme.RouteLine
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
@@ -16,7 +18,7 @@ class RouteMapRenderer(private val map: MapView) {
     private val context = map.context
 
     private val routeLine = Polyline(map).apply {
-        outlinePaint.color = ContextCompat.getColor(context, R.color.route_line)
+        outlinePaint.color = RouteLine.toArgb()
         outlinePaint.strokeWidth = context.resources.getDimension(R.dimen.route_line_width)
     }
 

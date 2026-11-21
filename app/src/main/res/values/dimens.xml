@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Marge des éléments posés sur la carte (s'ajoute aux barres système). -->
-    <dimen name="overlay_margin">12dp</dimen>
+    <!-- Utilisées par RouteMapRenderer (vue osmdroid). -->
     <dimen name="route_line_width">4dp</dimen>
     <!-- Marge autour du trajet quand la carte est recadrée dessus. -->
     <dimen name="route_zoom_padding">48dp</dimen>
