@@ -19,6 +19,7 @@ import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
+import kotlin.math.floor
 import kotlin.random.Random
 
 /**
@@ -279,7 +280,7 @@ class MockLocationService : Service() {
         private const val NOTIF_EVERY_TICKS = 5
 
         fun formatSpeed(kmh: Double): String =
-            if (kmh >= 100 || kmh == Math.floor(kmh)) {
+            if (kmh >= 100 || kmh == floor(kmh)) {
                 String.format(java.util.Locale.FRANCE, "%.0f", kmh)
             } else {
                 String.format(java.util.Locale.FRANCE, "%.1f", kmh)
