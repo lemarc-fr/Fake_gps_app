@@ -15,7 +15,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_margin="12dp"
+        android:layout_margin="@dimen/overlay_margin"
         android:contentDescription="@string/map_style"
         app:fabSize="mini"
         app:srcCompat="@drawable/ic_layers" />
@@ -25,11 +25,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_margin="12dp"
-        android:background="#B3FFFFFF"
+        android:layout_margin="@dimen/overlay_margin"
+        android:background="@color/attribution_background"
         android:paddingStart="4dp"
         android:paddingEnd="4dp"
-        android:textColor="#DE000000"
+        android:textColor="@color/attribution_text"
         android:textSize="10sp" />
 
     <com.google.android.material.card.MaterialCardView
@@ -37,7 +37,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:layout_margin="12dp"
+        android:layout_margin="@dimen/overlay_margin"
         app:cardCornerRadius="16dp"
         app:cardElevation="6dp">
 
@@ -74,7 +74,7 @@
                 app:helperText="@string/speed_helper"
                 app:startIconContentDescription="@string/presets_title"
                 app:startIconDrawable="@drawable/ic_signal"
-                app:suffixText="km/h">
+                app:suffixText="@string/speed_unit">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/speedInput"
@@ -82,8 +82,7 @@
                     android:layout_height="wrap_content"
                     android:imeOptions="actionDone"
                     android:fontFamily="monospace"
-                    android:inputType="text|textNoSuggestions"
-                    android:text="5" />
+                    android:inputType="text|textNoSuggestions" />
             </com.google.android.material.textfield.TextInputLayout>
 
             <com.google.android.material.checkbox.MaterialCheckBox
@@ -117,7 +116,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:contentDescription="@string/routing_car"
-                    android:text="🚗" />
+                    android:text="@string/routing_car_icon" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/routingBike"
@@ -126,7 +125,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:contentDescription="@string/routing_bike"
-                    android:text="🚲" />
+                    android:text="@string/routing_bike_icon" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/routingFoot"
@@ -135,7 +134,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:contentDescription="@string/routing_foot"
-                    android:text="🚶" />
+                    android:text="@string/routing_foot_icon" />
             </com.google.android.material.button.MaterialButtonToggleGroup>
 
             <LinearLayout

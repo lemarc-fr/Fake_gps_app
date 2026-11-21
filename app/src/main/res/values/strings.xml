@@ -2,7 +2,6 @@
 <resources>
     <string name="app_name">Fake GPS</string>
     <string name="hint_tap">Touchez la carte pour ajouter des points de passage.</string>
-    <string name="points_count">%1$d point(s) – %2$s</string>
     <string name="speed_hint">Vitesse v(t)</string>
     <string name="speed_helper">Ex. : 50 · 30+20*sin(t/10) · min(5*t; 130) — t en s, d en m. Icône de gauche : signaux préenregistrés.</string>
     <string name="speed_invalid">Expression de vitesse invalide : %1$s</string>
@@ -28,7 +27,6 @@
     <string name="trace_deleted">Trace « %1$s » supprimée</string>
     <string name="trace_error">Erreur : %1$s</string>
     <string name="gpx_exported">Trace exportée</string>
-    <string name="gpx_loaded">Trace GPX chargée : %1$d points</string>
     <string name="gpx_error">Impossible de charger le GPX : %1$s</string>
     <string name="btn_clear">Effacer</string>
     <string name="btn_undo">Annuler</string>
@@ -55,8 +53,61 @@
     <string name="routing_car">Voiture</string>
     <string name="routing_bike">Vélo</string>
     <string name="routing_foot">À pied</string>
+    <string name="routing_car_icon" translatable="false">🚗</string>
+    <string name="routing_bike_icon" translatable="false">🚲</string>
+    <string name="routing_foot_icon" translatable="false">🚶</string>
     <string name="routing_computing">Calcul de l’itinéraire…</string>
     <string name="routing_busy">Itinéraire en cours de calcul, patientez.</string>
     <string name="routing_error">Itinéraire impossible : %1$s</string>
     <string name="hint_tap_routed">Touchez la carte pour placer le départ, puis les étapes : le trajet suivra les routes.</string>
+    <string name="speed_unit">km/h</string>
+
+    <plurals name="points_count">
+        <item quantity="one">%1$d point – %2$s</item>
+        <item quantity="other">%1$d points – %2$s</item>
+    </plurals>
+    <plurals name="gpx_loaded">
+        <item quantity="one">Trace chargée : %1$d point</item>
+        <item quantity="other">Trace chargée : %1$d points</item>
+    </plurals>
+    <string name="waypoint_title">Point %1$d</string>
+
+    <!-- Fonds de carte -->
+    <string name="map_ign_plan">Plan IGN</string>
+    <string name="map_ign_photo">Photo aérienne IGN</string>
+    <string name="map_osm">OpenStreetMap</string>
+    <string name="map_topo">OpenTopoMap</string>
+
+    <!-- Signaux de vitesse préenregistrés -->
+    <string name="preset_walk">Marche</string>
+    <string name="preset_bike">Vélo</string>
+    <string name="preset_city">Voiture en ville</string>
+    <string name="preset_highway">Autoroute</string>
+    <string name="preset_sine">Sinusoïde (période 60 s)</string>
+    <string name="preset_square">Carré : 30 km/h / arrêt (2 min)</string>
+    <string name="preset_triangle">Triangle (période 90 s)</string>
+    <string name="preset_sawtooth">Dent de scie (période 60 s)</string>
+    <string name="preset_ramp">Rampe jusqu’à 130 km/h</string>
+    <string name="preset_soft_start">Démarrage progressif</string>
+    <string name="preset_traffic_lights">Feux rouges (stop-and-go)</string>
+    <string name="preset_traffic_jam">Embouteillage</string>
+    <string name="preset_irregular_walk">Marche irrégulière</string>
+    <string name="preset_intervals">Jogging fractionné</string>
+    <string name="preset_random">Aléatoire 40–60 km/h</string>
+    <string name="preset_distance_accel">Accélère avec la distance</string>
+
+    <!-- Messages d'erreur (insérés dans gpx_error, trace_error, routing_error, error_mock) -->
+    <string name="error_gpx_not_found">fichier introuvable</string>
+    <string name="error_gpx_unreadable">fichier GPX illisible</string>
+    <string name="error_gpx_no_points">aucun point trouvé dans le fichier</string>
+    <string name="error_routing_busy">serveur saturé, réessayez dans un instant</string>
+    <string name="error_routing_invalid">réponse invalide du serveur (%1$s)</string>
+    <string name="error_routing_no_route">aucun itinéraire trouvé entre ces points</string>
+    <string name="error_routing_no_segment">point trop éloigné d’une route</string>
+    <string name="error_routing_truncated">géométrie de l’itinéraire tronquée</string>
+    <string name="error_network">serveur injoignable, vérifiez la connexion</string>
+    <string name="error_io">lecture ou écriture du fichier impossible</string>
+    <string name="error_unknown">erreur inconnue</string>
+    <string name="error_mock_not_allowed">Fake GPS n’est pas l’application de position fictive sélectionnée</string>
+    <string name="error_mock_no_provider">aucun fournisseur de position disponible</string>
 </resources>

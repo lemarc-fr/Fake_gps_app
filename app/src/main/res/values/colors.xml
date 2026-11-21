@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="blue_800">#1565C0</color>
+    <color name="green_800">#2E7D32</color>
+
+    <color name="route_line">@color/blue_800</color>
+    <!-- Bandeau d'attribution des tuiles, lisible sur tous les fonds de carte. -->
+    <color name="attribution_background">#B3FFFFFF</color>
+    <color name="attribution_text">#DE000000</color>
+</resources>
