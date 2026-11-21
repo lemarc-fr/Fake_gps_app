@@ -50,7 +50,7 @@ class RouteEngine(points: List<LatLon>, private val loop: Boolean) {
         if (loop) {
             if (route.size == 2) {
                 // Aller-retour entre deux points.
-                while (travelled > total || travelled < 0) {
+                while (travelled !in 0.0..total) {
                     if (travelled > total) {
                         travelled = 2 * total - travelled; forward = false
                     } else {

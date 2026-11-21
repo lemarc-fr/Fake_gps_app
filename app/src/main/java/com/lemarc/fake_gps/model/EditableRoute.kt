@@ -49,7 +49,7 @@ class EditableRoute private constructor(
          */
         fun of(points: List<LatLon>, legSizes: List<Int>? = null): EditableRoute {
             val valid = legSizes != null && legSizes.all { it > 0 } && legSizes.sum() == points.size
-            return EditableRoute(points, if (valid) legSizes!! else List(points.size) { 1 })
+            return EditableRoute(points, if (valid) legSizes else List(points.size) { 1 })
         }
     }
 }

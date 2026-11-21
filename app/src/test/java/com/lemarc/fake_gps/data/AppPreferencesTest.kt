@@ -14,14 +14,14 @@ class AppPreferencesTest {
 
     @Test
     fun decodeIgnoresGarbage() {
-        assertEquals(emptyList<LatLon>(), AppPreferences.decodePoints(null))
-        assertEquals(emptyList<LatLon>(), AppPreferences.decodePoints(""))
-        assertEquals(listOf(LatLon(1.0, 2.0)), AppPreferences.decodePoints("1.0,2.0;oops;3.0"))
+        assertEquals(AppPreferences.decodePoints(null), emptyList<LatLon>())
+        assertEquals(AppPreferences.decodePoints(""), emptyList<LatLon>())
+        assertEquals(AppPreferences.decodePoints("1.0,2.0;oops;3.0"), listOf(LatLon(1.0, 2.0)))
     }
 
     @Test
     fun legsRoundTrip() {
         assertEquals(listOf(1, 12, 3), AppPreferences.decodeLegs(AppPreferences.encodeLegs(listOf(1, 12, 3))))
-        assertEquals(emptyList<Int>(), AppPreferences.decodeLegs(""))
+        assertEquals(AppPreferences.decodeLegs(""), emptyList<Int>())
     }
 }

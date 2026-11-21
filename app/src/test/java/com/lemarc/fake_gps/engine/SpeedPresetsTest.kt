@@ -9,10 +9,10 @@ class SpeedPresetsTest {
 
     @Test
     fun allPresetsParseAndProduceValidSpeeds() {
-        for (preset in SpeedPresets.ALL) {
-            val expr = SpeedExpression.parse(preset.expression)
+        for ((_, expression) in SpeedPresets.ALL) {
+            val expr = SpeedExpression.parse(expression)
             val values = SpeedPresets.sample(expr)
-            assertTrue(preset.expression, values.all { it >= 0 && !it.isNaN() })
+            assertTrue(expression, values.all { it >= 0 && !it.isNaN() })
         }
     }
 

@@ -6,6 +6,7 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Locale
+import kotlin.math.pow
 
 data class OsrmRoute(val points: List<LatLon>, val distanceMeters: Double, val durationSeconds: Double)
 
@@ -103,7 +104,7 @@ object OsrmClient {
 
     /** Décode une polyligne encodée (algorithme Google, précision 5 ou 6). */
     fun decodePolyline(encoded: String, precision: Int = 6): List<LatLon> {
-        val factor = Math.pow(10.0, precision.toDouble())
+        val factor = 10.0.pow(precision.toDouble())
         val result = ArrayList<LatLon>()
         var index = 0
         var lat = 0L

@@ -13,8 +13,11 @@ object GpxWriter {
         sb.append("<gpx version=\"1.1\" creator=\"Fake GPS\" xmlns=\"http://www.topografix.com/GPX/1/1\">\n")
         sb.append("  <metadata><name>").append(escape(name)).append("</name></metadata>\n")
         sb.append("  <trk>\n    <name>").append(escape(name)).append("</name>\n    <trkseg>\n")
-        for (p in points) {
-            sb.append(String.format(Locale.US, "      <trkpt lat=\"%.7f\" lon=\"%.7f\"/>\n", p.lat, p.lon))
+        for ((lat, lon) in points) {
+            sb.append(String.format(Locale.US, "      <trkpt lat=\"%.7f\" lon=\"%.7f\"/>\n",
+                lat,
+                lon
+            ))
         }
         sb.append("    </trkseg>\n  </trk>\n</gpx>\n")
         out.write(sb.toString().toByteArray(Charsets.UTF_8))
