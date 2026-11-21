@@ -89,7 +89,7 @@ fun MainScreen(viewModel: MainViewModel) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val mockStatus by MockState.status.collectAsStateWithLifecycle()
     var dialog by remember { mutableStateOf<MainDialog?>(null) }
-    val mapHandle = remember { OsmMapHandle() }
+    val mapHandle = remember { RouteMapHandle() }
     val scope = rememberCoroutineScope()
     var speedText by rememberSaveable(stateSaver = TextFieldValue.Saver) {
         mutableStateOf(TextFieldValue(viewModel.speedExpression))
@@ -107,7 +107,7 @@ fun MainScreen(viewModel: MainViewModel) {
                             resources.getString(event.messageRes, ErrorMessages.describe(resources, event.error)),
                         )
                         is MainEvent.RouteLoaded -> {
-                            mapHandle.zoomTo(viewModel.state.value.route.points)
+                            this@launch.launch { mapHandle.zoomTo(viewModel.state.value.route.points) }
                             context.toast(
                                 resources.getQuantityString(R.plurals.gpx_loaded, event.pointCount, event.pointCount),
                             )
@@ -191,7 +191,7 @@ fun MainScreen(viewModel: MainViewModel) {
     )
 
     Box(Modifier.fillMaxSize()) {
-        OsmMap(
+        RouteMap(
             route = state.route,
             mapStyle = state.mapStyle,
             currentPosition = mockStatus.position.takeIf { mockStatus.mode != MockMode.IDLE },
@@ -206,7 +206,7 @@ fun MainScreen(viewModel: MainViewModel) {
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .padding(12.dp)
         Text(
-            text = state.mapStyle.tileSource.copyrightNotice.orEmpty(),
+            text = state.mapStyle.attribution,
             color = AttributionText,
             fontSize = 10.sp,
             modifier = Modifier

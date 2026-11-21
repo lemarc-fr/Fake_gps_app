@@ -28,7 +28,23 @@ android {
 
     buildTypes {
         release {
+            // R8 : réduit, optimise et obfusque le code ; retire ensuite les ressources inutilisées.
+            // Les bibliothèques (MapLibre/JavaCPP, Compose…) fournissent leurs propres règles de conservation.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            // Téléphones ARM seulement : x86/x86_64 ne servent qu'aux émulateurs (gardés en debug),
+            // et le moteur MapLibre pèse ~14 Mo par architecture.
+            ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a") }
             signingConfig = signingConfigs.getByName(if (uploadStoreFile != null) "upload" else "debug")
+        }
+    }
+
+    packaging {
+        jniLibs {
+            // Bibliothèques natives compressées dans l'APK (moteur MapLibre : 13 → 6 Mo) ;
+            // Android les extrait à l'installation au lieu de les charger directement depuis l'APK.
+            useLegacyPackaging = true
         }
     }
 
@@ -48,7 +64,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.osmdroid.android)
+    implementation(libs.maplibre.compose)
+    // Sans moteur de rendu, la carte plante au lancement (libmaplibre-native-c.so introuvable).
+    runtimeOnly(libs.maplibre.native.runtime.opengl)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     testImplementation(libs.junit)

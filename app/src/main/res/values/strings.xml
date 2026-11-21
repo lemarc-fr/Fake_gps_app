@@ -47,7 +47,6 @@
     <string name="notif_channel">Simulation GPS</string>
     <string name="notif_title">Position simulée active</string>
     <string name="error_mock">Impossible de simuler la position : %1$s</string>
-    <string name="my_position">Position simulée</string>
     <string name="map_style">Fond de carte</string>
     <string name="routing_straight">Libre</string>
     <string name="routing_car">Voiture</string>
@@ -70,7 +69,6 @@
         <item quantity="one">Trace chargée : %1$d point</item>
         <item quantity="other">Trace chargée : %1$d points</item>
     </plurals>
-    <string name="waypoint_title">Point %1$d</string>
 
     <!-- Fonds de carte -->
     <string name="map_ign_plan">Plan IGN</string>

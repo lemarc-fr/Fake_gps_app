@@ -1,12 +1,15 @@
 [versions]
 agp = "9.5.2"
-# Doit rester égal à la version de Kotlin embarquée par AGP (plugin du compilateur Compose).
-kotlin = "2.2.10"
+# Remplace le Kotlin embarqué par AGP (2.2.x) : maplibre-compose est compilé avec Kotlin 2.4.
+# Le plugin du compilateur Compose doit avoir exactement la même version.
+kotlin = "2.4.21"
 core-ktx = "1.19.1"
 lifecycle = "2.11.1"
 activity = "1.13.0"
 compose-bom = "2026.09.00"
-osmdroid = "6.1.20"
+maplibre-compose = "0.20.0"
+# Moteur natif de MapLibre, publié à part : même version que maplibre-native-ffi tiré par maplibre-compose.
+maplibre-native-ffi = "0.202610.0"
 junit = "4.13.2"
 json = "20260814"
 
@@ -22,10 +25,12 @@ androidx-compose-ui-graphics = { group = "androidx.compose.ui", name = "ui-graph
 androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
-osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
+maplibre-compose = { group = "org.maplibre.compose", name = "maplibre-compose", version.ref = "maplibre-compose" }
+maplibre-native-runtime-opengl = { group = "org.maplibre.nativeffi", name = "maplibre-native-ffi-runtime-opengl", version.ref = "maplibre-native-ffi" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 json = { group = "org.json", name = "json", version.ref = "json" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

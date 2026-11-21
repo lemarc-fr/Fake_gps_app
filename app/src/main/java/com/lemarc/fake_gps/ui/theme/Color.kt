@@ -13,3 +13,6 @@ val RouteLine = Blue800
 /** Bandeau d'attribution des tuiles, lisible sur tous les fonds de carte. */
 val AttributionBackground = Color(0xB3FFFFFF)
 val AttributionText = Color(0xDE000000)
+
+/** Position simulée sur la carte. */
+val CurrentPosition = Green800
