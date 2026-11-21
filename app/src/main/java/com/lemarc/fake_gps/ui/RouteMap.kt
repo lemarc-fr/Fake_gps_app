@@ -13,6 +13,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.lemarc.fake_gps.data.AppPreferences
+import com.lemarc.fake_gps.map.MapSource
 import com.lemarc.fake_gps.map.MapStyle
 import com.lemarc.fake_gps.map.RouteGeoJson
 import com.lemarc.fake_gps.model.EditableRoute
@@ -66,7 +67,7 @@ class RouteMapHandle {
 }
 
 /**
- * Carte MapLibre : fond raster [mapStyle], trajet, points touchés et position simulée.
+ * Carte MapLibre : fond [mapStyle] (vectoriel ou raster), trajet, points touchés et position simulée.
  *
  * @param initialCamera position de départ, lue une seule fois à la création de la carte.
  * @param onPause appelé à chaque mise en pause avec la caméra courante, pour la mémoriser.
@@ -85,14 +86,19 @@ fun RouteMap(
     val currentOnTap by rememberUpdatedState(onTap)
     val currentOnPause by rememberUpdatedState(onPause)
 
-    // Style vide : toutes les sources et couches sont déclarées ici, dans l'ordre d'affichage.
+    // Fond vectoriel : le style publié fournit toutes ses couches. Fond raster : style vide,
+    // complété ici par la couche d'images. Le trajet se dessine toujours par-dessus.
+    val source = mapStyle.source
     val mapState = rememberMapState(
-        baseStyle = BaseStyle.Empty,
+        baseStyle = when (source) {
+            is MapSource.Vector -> BaseStyle.Uri(source.styleUrl)
+            is MapSource.Raster -> BaseStyle.Empty
+        },
         initialCameraPosition = remember {
             CameraPosition(center = initialCamera.center.toPosition(), zoom = initialCamera.zoom)
         },
     ) {
-        BaseMapLayer(mapStyle)
+        if (source is MapSource.Raster) RasterBaseLayer(source)
         RouteLayers(route)
         CurrentPositionLayer(currentPosition)
     }
@@ -137,10 +143,10 @@ fun RouteMap(
 
 @Composable
 @MaplibreComposable
-private fun BaseMapLayer(style: MapStyle) {
-    key(style) {
-        val tiles = rememberRasterTileSource(style.tiles, tileSize = MapStyle.TILE_SIZE) {
-            maxZoom = style.maxZoom
+private fun RasterBaseLayer(source: MapSource.Raster) {
+    key(source) {
+        val tiles = rememberRasterTileSource(source.tiles, tileSize = MapSource.Raster.TILE_SIZE) {
+            maxZoom = source.maxZoom
         }
         RasterLayer(id = "basemap", source = tiles)
     }
